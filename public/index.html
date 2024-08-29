@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mapa de Usuarios</title>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBaGdE9AAEaXoAJbed4X8-btY7XmCDEGOY"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    #map {
+      height: 100vh;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script>
+    let map;
+    let markers = []; // Para almacenar los marcadores
+
+    function initMap() {
+      // Crear el mapa con un centro y nivel de zoom predeterminados
+      map = new google.maps.Map(document.getElementById('map'), {
+        center: { lat: 18.5129384, lng: -68.3951311 }, // Coordenadas predeterminadas
+        zoom: 15,
+        mapTypeId: google.maps.MapTypeId.SATELLITE
+      });
+
+      // Llamar a la función de actualización cada 10 segundos
+      setInterval(updateMap, 10000);
+
+      // Llamar a la función de actualización inicialmente
+      updateMap();
+    }
+
+    function updateMap() {
+      fetch('http://localhost:3000/driver-locations')
+        .then(response => response.json())
+        .then(data => {
+          if (data.length === 0) return;
+
+        //   const firstLocation = data[0];
+        //   map.setCenter({ lat: firstLocation.latitude, lng: firstLocation.longitude });
+        //   map.setZoom(10);
+
+          // Array para almacenar las ubicaciones
+          const locations = data.map(item => ({
+            lat: +item.latitude,
+            lng: +item.longitude,
+            name: item.full_name,
+            phone: item.phone,
+            identification: item.identification_number
+          }));
+
+          // Crear un objeto de límites para ajustar el mapa
+          const bounds = new google.maps.LatLngBounds();
+          const infoWindow = new google.maps.InfoWindow();
+
+          // Limpiar los marcadores existentes
+          markers.forEach(marker => marker.setMap(null));
+          markers = [];
+
+          const iconSize = new google.maps.Size(50, 50); // Tamaño en píxeles
+
+          // Crear un objeto de ícono
+          const icon = {
+            url: "https://static.vecteezy.com/system/resources/thumbnails/018/982/684/small_2x/car-vehicles-transport-in-flat-style-png.png",
+            scaledSize: iconSize // Ajustar el tamaño del ícono
+          };
+
+          // Añadir nuevos marcadores y ajustar límites
+          locations.forEach(location => {
+            const marker = new google.maps.Marker({
+              position: location,
+              map: map,
+              title: `Conductor: ${location.name} - ${location.phone} - ${location.identification}`,
+              icon: icon
+            });
+
+            marker.addListener('click', () => {
+              infoWindow.setContent(marker.getTitle());
+              infoWindow.open(map, marker);
+            });
+
+            markers.push(marker);
+
+            // Extender los límites del mapa para incluir la nueva ubicación
+            // bounds.extend(new google.maps.LatLng(firstLocation.latitude, firstLocation.longitude));
+          });
+
+          // Ajustar el mapa para que se ajuste a los límites
+        //   map.fitBounds(bounds);
+        })
+        .catch(error => console.error('Error fetching data:', error));
+    }
+
+    window.onload = initMap;
+  </script>
+</body>
+</html>
